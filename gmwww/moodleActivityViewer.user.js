@@ -2,25 +2,25 @@
 // @name          Moodle Activity Viewer
 // @namespace	    http://damos.world
 // @description	  Re-render Moodle pages to show student usage
-// @version       0.8.2
+// @version       0.8.5
 // @grant         GM_getValue
 // @grant         GM_setValue
 // @grant         GM_getResourceText
 // @grant         GM_info
 // @grant         GM_addStyle
 // @grant         GM_xmlhttpRequest
-// @require       /mav/js/jquery-1.9.1.js
-// @require       /mav/js/jquery-ui-1.10.2.custom.min.js
+// @require       jquery-ui/external/jquery/jquery.js
+// @require       jquery-ui/jquery-ui.js
 // @require       GM_XHR.js
 // @require       balmi.user.js
 // @require       mav_config.js
 // @resource      mavConfig mav_config.json
-// @resource      jQueryCSS /mav/js/jquery-ui-1.10.2.custom.min.css
+// @resource      jQueryCSS jquery-ui/jquery-ui.css
 // @resource      mavInjectHtml mavInject.html
 // @resource      busyAnimationDiv busyAnimation.html
 // @resource      mavCSS MAVStyles.css
-// @include       https://moodle.server.com/*
-// @include       http://moodle.server.com/*
+// @include       https://usqstudydesk.usq.edu.au/m2/*
+// @connect       usq.edu.au
 // ==/UserScript==
 
 
@@ -38,6 +38,7 @@ if (window.top != window.self)
  */
 function mavUpdatePage()
 {
+
 	if(debug) console.log('fragment='+window.location.hash) ;
 	if(debug) console.log('isurlmode = '+MAVcourseSettings.isUrlMode()) ;
 	if(debug) console.log('fragment='+window.location.hash) ;
@@ -154,8 +155,8 @@ function mavSetMenuElementText()
 {
 	//Set text according to whether its already on or off (including img tag)
 	var switchLinkText = (isMavOn()) ? 'Turn Activity View Off' : 'Turn Activity View On' ;
-	document.getElementById('mav_activityViewerElement').innerHTML =
-	'<img src="http://moodle.server.com/theme/image.php?theme=theme1&amp;image=i%2Fnavigationitem&amp;rev=391" title="moodle" class="smallicon navicon" alt="moodle">' + switchLinkText ;
+
+	$('#mav_activityViewerElement > span').text(switchLinkText) ;
 }
 
 
@@ -975,10 +976,87 @@ function getStudentAccess(link,linkText)
       dataType: 'json', 
       success: function(data)
       {  
+		
+		// *** Define the CSV producing function
+	  var produceCSV = function( JSONData, ReportTitle) {
+    		var arrData = typeof JSONData != 'object' ? JSON.parse(JSONData) : JSONData;
+		var ShowLabel = true;
+    		var CSV = '';    
+    		//Set Report title in first row or line
+    
+		    CSV += ReportTitle + '\r\n\n';
+
+	    	//This condition will generate the Label/Header
+    		if (ShowLabel) {
+        		var row = "";
+        
+        		//This loop will extract the label from 1st index of on array
+        		for (var index in arrData[0]) {
+            
+            		//Now convert each value to string and comma-seprated
+            		row += index + ',';
+        	}
+
+        	row = row.slice(0, -1);
+        
+        	//append Label row with line break
+        	CSV += row + '\r\n';
+    	}
+    
+    	//1st loop is to extract each row
+    	for (var i = 0; i < arrData.length; i++) {
+       		var row = "";
+        
+        	//2nd loop will extract each column and convert it in string comma-seprated
+        	for (var index in arrData[i]) {
+            		row += '"' + arrData[i][index] + '",';
+        	}
+
+        	row.slice(0, row.length - 1);
+        
+        	//add a line break after each row
+        	CSV += row + '\r\n';
+    	}
+
+    	if (CSV == '') {        
+        	alert("Invalid data");
+        	return;
+    	}   
+    
+    	//Generate a file name
+    	var fileName = "MAV_";
+    	//this will remove the blank-spaces from the title and replace it with an underscore
+    	fileName += ReportTitle.replace(/ /g,"_");   
+    
+    	//Initialize file format you want csv or xls
+    	var uri = 'data:text/csv;charset=utf-8,' + escape(CSV);
+    
+    	// Now the little tricky part.
+    	// you can use either>> window.open(uri);
+    	// but this will not work in some browsers
+    	// or you will not get the correct file extension    
+    
+    	//this trick will generate a temp <a /> tag
+    	var link = document.createElement("a");    
+    	link.href = uri;
+    
+    	//set the visibility hidden so it will not effect on your web-layout
+    	link.style = "visibility:hidden";
+    	link.download = fileName + ".csv";
+    
+    	//this part will append the anchor tag and remove it after automatic click
+    	document.body.appendChild(link);
+    	link.click();
+    	document.body.removeChild(link);
+} ;
+
+
+  		// **** start of actual function
+
 			var courseCode = balmi.getCourseCode();
 			
 			//--------- put together a default html string:
-			var tableHeader = "<table class='studentAccess'><thead><tr><th>Student Number</th><th>Firstname</th><th>Lastname</th></tr></thead><tbody>";
+	 		var tableHeader ="<table class='studentAccess'><thead><tr><th>Student Number</th><th>Firstname</th><th>Lastname</th><th>Email</th></tr></thead><tbody>";
 			var tableContent = "";
 			var tableFooter = "</tbody></table>";					
 			
@@ -986,15 +1064,24 @@ function getStudentAccess(link,linkText)
 			var accessStudents = new Array();
 			var noaccessStudents = new Array();
 						
+
 			if 	( data.data[relativeLink]['access'].length > 0 ) {				
 				$.each(data.data[relativeLink]['access'], function (index, value) {
 					// could alternatively loop over each index to add more flexibility likewise
-					tableContent += "<tr><td>" + value.username + "</td><td>" + value.firstname + "</td><td>" + value.lastname + "</td></tr>";	
+					value.email = value.email.replace( ".inv", "" );
+					tableContent += "<tr><td>" + value.username + "</td><td>" + value.firstname + "</td><td>" + value.lastname + "</td><td><a href=\"" + value.email + "\">" + value.email + "</a></td></tr>";	
 					accessStudents.push(value.username);
 				})
+			
+			var jsonAccess = JSON.stringify(data.data[relativeLink]['access']);
 				
 				// write the accessed students content to the container
-				$("#studentActivityList").html("<p>These students <strong>HAVE</strong> accessed this resource/activity</p>" + tableHeader + tableContent + tableFooter) ;
+				$("#studentActivityList").html("<p>These " + accessStudents.length + " students <strong>HAVE</strong> accessed this resource/activity</p>" + "<p style=\"font-size: smaller\"><a id=\"accessCsv\" href=\"\">Download CSV file</a> for use in <a href=\"https://support.office.com/en-us/article/Use-mail-merge-to-send-bulk-email-messages-0f123521-20ce-4aa8-8b62-ac211dedefa4\">in email merge.</a></p><p>" + "</p>" + tableHeader + tableContent + tableFooter) ;
+
+			$('#accessCsv').click( function() { 
+				produceCSV( jsonAccess, "Students who accessed " + linkText  ); return false; });
+
+
 			}
 			else {
 				$("#studentActivityList").html("<p>No students have accessed this link</p>") ;
@@ -1008,10 +1095,17 @@ function getStudentAccess(link,linkText)
 				tableContent = ""; // clear for the next table	
 				
 				$.each(data.data[relativeLink]['noaccess'], function (index, value) {
-					tableContent += "<tr><td>" + value.username + "</td><td>" + value.firstname + "</td><td>" + value.lastname + "</td></tr>";
+					value.email = value.email.replace( ".inv", "" );
+					tableContent += "<tr><td>" + value.username + "</td><td>" + value.firstname + "</td><td>" + value.lastname + "</td><td><a href=\"mailto:" + value.email + "\">" + value.email + "</a></td></tr>";
 					noaccessStudents.push(value.username);
 				})
+
+			var jsonNoAccess = JSON.stringify(data.data[relativeLink]['noaccess']);
 				
+				$("#studentNoActivityList").html("<p>These " + noaccessStudents.length + " students <strong>HAVE NOT</strong> accessed this resource/activity</p>" + "<p style=\"font-size: smaller\"><a id=\"noAccessCsv\" href=\"\">Download CSV file</a> for use <a href=\"https://support.office.com/en-us/article/Use-mail-merge-to-send-bulk-email-messages-0f123521-20ce-4aa8-8b62-ac211dedefa4\">in email merge.</a></p>" + tableHeader + tableContent + tableFooter) ;
+
+			$('#noAccessCsv').click( function() { 
+				produceCSV( jsonNoAccess, "Students not access " + linkText  ); return false; });
 			}
 			else {
 				$("#studentNoActivityList").html("<p>All students have accessed this link</p>") ;
@@ -1242,7 +1336,9 @@ function updatePage(data)
 function addCSS(css)
 {
 	//Make jQuery images load from mav server
-	css = css.replace(/url\((images\/ui-[^\.]+.png)\)/gm,"url(" + mavJqueryHtml + "/$1)") ;
+//	if(debug) console.log("css before="+css) ;
+	css = css.replace(/url\(['"]?(.*?images\/ui-[^\.]+.png)['"]?\)/gm,"url('" + mavJqueryHtml + "/$1')") ;
+//	if(debug) console.log("css after="+css) ;
 	GM_addStyle(css) ;	
 }
 
@@ -1426,6 +1522,11 @@ function mavSelfUpdate()
 var mav_config = new mav_config(GM_getResourceText('mavConfig')) ;
 
 /**
+ * @type string Absolute URI to the home page of Moodle server
+ */
+var moodleServer = mav_config.getMoodleServer() ;
+
+/**
  * @type string Absolute URI to the location of balmi API scripts
  */
 var mavServerApi = mav_config.getServerApi() ;
@@ -1537,7 +1638,9 @@ GM_addStyle(mavCSS) ;
 ///////////////////////////////////////////////////////////////////////////////
 //Get the div for the dialogs
 var mavInjectHtml = GM_getResourceText('mavInjectHtml') ;
+console.log( '**** trying to inject ' + mavInjectHtml );
 $("body").append(mavInjectHtml);
+
 
 //Set the src for the image in the selfupdate div
 $("#MAVselfUpdateDialogImage").attr('src',mavServerHtml+'/'+$("#MAVselfUpdateDialogImage").attr('src')) ;
@@ -1620,5 +1723,3 @@ $("#MAVdisplayColour").bind("click", function() {
 //END OF PROGRAM
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-
