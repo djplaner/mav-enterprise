@@ -97,6 +97,45 @@ $row = $stmt->fetch(PDO::FETCH_ASSOC) ;
 if($row != null)
 	$studentCount = $row['counter'] ;
 
+////////////////////////////////////////////////////////////////////////////////
+// **DJ mod** Get number of students enrolled in course for the chosen groups
+////////////////////////////////////////////////////////////////////////////////
+
+// By default groupCount is all count
+$studentGroupCount = $studentCount;
+
+if($input['settings']['groups'][0] != 0) {
+	$groups = implode( ', ', $input['settings']['groups'] );
+
+	$select =
+"
+select
+  count(distinct gm.userid) as total
+from 
+  {$DBPREFIX}groups g, {$DBPREFIX}groups_members gm,
+  {$DBPREFIX}role r,{$DBPREFIX}role_assignments ra,{$DBPREFIX}context con, {$DBPREFIX}user u, {$DBPREFIX}course c
+where
+  con.contextlevel = 50
+  and con.id = ra.contextid
+  and r.id = ra.roleid
+  and ra.userid = u.id
+  and r.archetype = 'student'
+  and con.instanceid = c.id
+  and c.id = :courseid
+  and gm.groupid in ( $groups )
+  and gm.userid = ra.userid 
+  and gm.groupid = g.id
+  and g.courseid = c.id
+";
+
+	$stmt = $pdo->prepare($select) ;
+	$stmt->execute(array(':courseid'=>$courseid)) ;
+	$row = $stmt->fetch(PDO::FETCH_ASSOC) ;
+
+	if($row != null) {
+		$studentGroupCount = $row['total'] ;
+	} 
+} 
 	
 ////////////////////////////////////////////////////////////////////////////////
 //Get the stats from the database as per input
@@ -215,6 +254,7 @@ file_put_contents
 
 $output = array('data' => $output) ;
 $output['studentCount'] = $studentCount ;
+$output['studentGroupCount'] = $studentGroupCount ;
 $output['settings'] = $input['settings'] ;
 
 header('Content-Type: application/json');
