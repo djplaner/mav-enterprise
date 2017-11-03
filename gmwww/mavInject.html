@@ -7,10 +7,10 @@
                 <input type="radio" id="MAVTypeClicks" checked name="MAVType" value="C" /><label for="MAVTypeClicks">Clicks</label>
                 <input type="radio" id="MAVTypeColour" name="MAVType" value="S" /><label for="MAVTypeColour">Students</label>
             </p>
-			<fieldset id="MAVTypeExample">
+<!--			<fieldset id="MAVTypeExample">
 				<legend>For Example:</legend>
 				<p class="MAVTypeExample">Discussion forum</p>
-			</fieldset>
+			</fieldset> -->
 		</div>
 <!-- Removed timeframe code for now - also commented out related jquery in initAccordion function in moodleActivityViewer.user.js
 
@@ -112,9 +112,9 @@
 	</div>
 	<div id="MAVstudentActivityDialog" style="display:none;">
 		<div id="MAVstudentActivityTab">
-			<h2><span class="ui-icon ui-icon-circle-close"></span>Not Accessed</h2>
+			<h2><span class="ui-icon ui-icon-circle-close"></span>Not Accessed - <span style="font-size:smaller"><span id="VAR_numNoAccess"></span> students (<span id="VAR_perNoAccess"></span>%)</span></h2>
 			<div id="studentNoActivityList"></div>
-			<h2><span class="ui-icon ui-icon-circle-check"></span>Accessed</h2>
+			<h2><span class="ui-icon ui-icon-circle-check"></span>Accessed - <span style="font-size:smaller"><span id="VAR_numAccess"></span> students (<span id="VAR_perAccess"></span>%)</h2>
 			<div id="studentActivityList"></div>
 		</div>
 	</div>
