@@ -87,6 +87,28 @@ $tableNames = $mavConfig->getTableNamesAsArrayByMoodleUrl($selectedMoodle) ;
 
 $accessTemplate->assign('table',$tableNames) ;
 $accessTemplate->assign('dbprefix',$mav_config['dbprefix']) ;
+
+// ** DJ mod **
+// - pass in the group details around how to limit access
+// -
+
+if ($input['settings']['groups'][0] != 0 ) // if there are groups specified 
+{
+	$selectedGroups = $input['settings']['groups'] ;
+
+	//Check all values for selectedGroups are numbers
+	foreach($selectedGroups as $group)
+	{
+		if(!is_numeric($group))
+			throw new Exception("selectedGroups value from json data contains a non-numeric: $group",1) ;
+	}
+	$accessTemplate->assign('selectedGroups', $selectedGroups );
+        $noAccessTemplate->assign('selectedGroups', $selectedGroups );
+}
+
+
+// ** END DJ mode
+
 $noAccessTemplate->assign('table',$tableNames) ;
 $noAccessTemplate->assign('dbprefix',$mav_config['dbprefix']) ;
 
@@ -186,9 +208,7 @@ file_put_contents
 
 $output = array('data' => $output) ;
 $output['settings'] = $input['settings'] ;
-
 header('Content-Type: application/json');
-
 echo json_encode($output) ;
 
 if(getenv('DEBUG'))
