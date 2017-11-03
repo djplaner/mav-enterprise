@@ -19,7 +19,7 @@
 // @resource      mavInjectHtml mavInject.html
 // @resource      busyAnimationDiv busyAnimation.html
 // @resource      mavCSS MAVStyles.css
-// @include       https://usqstudydesk.usq.edu.au/m2/*
+// @include       https://usqstudydesk.usq.edu.au/m2/* 
 // @connect       usq.edu.au
 // ==/UserScript==
 
@@ -1110,6 +1110,19 @@ function getStudentAccess(link,linkText)
 			else {
 				$("#studentNoActivityList").html("<p>All students have accessed this link</p>") ;
 			}
+
+			// calculate stats
+			var numAccess = accessStudents.length;
+			var numNoAccess = noaccessStudents.length;
+			var per = 100 / ( numAccess + numNoAccess );
+			var perAccess = Number( (numAccess * per).toFixed(1));
+			var perNoAccess = Number( (numNoAccess * per).toFixed(1));
+
+			// Update titles with stats
+			$("#VAR_numNoAccess").html( numNoAccess );
+			$("#VAR_perNoAccess").html( perNoAccess );
+			$("#VAR_numAccess").html( numAccess );
+			$("#VAR_perAccess").html( perAccess );
 			
 			//--------- both containers now have content, build the accordion:
 			$("#MAVstudentActivityTab").accordion({
@@ -1158,6 +1171,7 @@ function updatePage(data)
 	
 	var activityType = data.settings.activityType ;
 	var displayMode = data.settings.displayMode ;
+        var numStudents = data.studentCount;
 	
 	//How to quantify the number in the page 
 	var activityText;
@@ -1247,8 +1261,24 @@ function updatePage(data)
 		var linkText = $(link).text() ;
 		if (data['data'].hasOwnProperty(linkName))
 		{
+			var perString = '';
+                        if(activityType == 'S') 
+			{
+				//perString = ' <span style="font-size: smaller">(';
+				perString = ' (';
+				var per = data.studentGroupCount;
+				if (data.studentGroupCount === 0) {
+                                        per = 0 ;
+                                }
+
+				var num = Number( 
+					(data['data'][linkName] * ( 100 / per )).toFixed(1));
+			 	//perString = perString + num + '%)</span>';
+			 	perString = perString + num + '%)';
+			}
+
 			//Add the count to the link text (using clicks or students)
-			$(link).after('&nbsp;<a id="studentActivityLink_'+i+'" class="makealink">(' + data['data'][linkName] + activityText + ')</a> ') ;
+			$(link).after('&nbsp;<a style="font-size: smaller" id="studentActivityLink_'+i+'" class="makealink">(' + data['data'][linkName] + activityText + perString + ')</a> ') ;
 			
 			//Add event handler for clicking on the student activity link to open dialog showing which students
 			$("#studentActivityLink_"+i).bind('click',function(){getStudentAccess(link,linkText);}) ;
@@ -1297,12 +1327,14 @@ function updatePage(data)
 					percentile = 0 ;
 				}
 				else if (activityType == "C") {
-					percentile = data['data'][linkName] / data.studentCount;
+					//percentile = data['data'][linkName] / data.studentCount;
+					percentile = data['data'][linkName] / data.studentGroupCount;
 					percentile = Math.round(percentile);
 					if (percentile>10) percentile=10;
 				}
 				else if (activityType == "S") {
-					percentile = data['data'][linkName] / data.studentCount * 10;
+					//percentile = data['data'][linkName] / data.studentCount * 10;
+					percentile = data['data'][linkName] / data.studentGroupCount * 10;
 					percentile = Math.round(percentile);
 				}
 				$(link).addClass("mavColour"+percentile);
@@ -1723,3 +1755,5 @@ $("#MAVdisplayColour").bind("click", function() {
 //END OF PROGRAM
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+
+
