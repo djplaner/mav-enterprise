@@ -1261,7 +1261,7 @@ function updatePage(data)
 		var linkText = $(link).text() ;
 		if (data['data'].hasOwnProperty(linkName))
 		{
-			var perString = '';
+			var perString = '', clickStats = '';
                         if(activityType == 'S') 
 			{
 				//perString = ' <span style="font-size: smaller">(';
@@ -1276,9 +1276,18 @@ function updatePage(data)
 			 	//perString = perString + num + '%)</span>';
 			 	perString = perString + num + '%)';
 			}
+			if (activityType == 'C' )
+                        {
+                                var per = data.studentGroupCount;
+                                if ( data.studentGroupCount != 0 ) {
+                                        average = Number(
+                                            (data['data'][linkName] / per).toFixed(1));
+                                        clickStats = ' <span style="font-size: smaller">(clicks/stud: ' + average + ')</span>';
+                                }
+                        }
 
 			//Add the count to the link text (using clicks or students)
-			$(link).after('&nbsp;<a style="font-size: smaller" id="studentActivityLink_'+i+'" class="makealink">(' + data['data'][linkName] + activityText + perString + ')</a> ') ;
+			$(link).after('&nbsp;<a style="font-size: smaller" id="studentActivityLink_'+i+'" class="makealink">(' + data['data'][linkName] + activityText + clickStats + perString + ')</a> ') ;
 			
 			//Add event handler for clicking on the student activity link to open dialog showing which students
 			$("#studentActivityLink_"+i).bind('click',function(){getStudentAccess(link,linkText);}) ;
